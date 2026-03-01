@@ -1,28 +1,8 @@
-using Library.Domain.Books;
-using Library.Domain.Patrons;
+using Library.Domain.Books.ValueObjects;
+using Library.Domain.Copies.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Domain.Copies;
-
-public record CopyId(Guid Value)
-{
-    public static CopyId NewId() => new(Guid.NewGuid());
-}
-
-public enum CopyType
-{
-    /// <summary>通常貸出用</summary>
-    Circulating,
-
-    /// <summary>研究専用（Researcher のみ）</summary>
-    Restricted,
-}
-
-public enum CopyStatus
-{
-    Available,
-    OnHold,
-    Loaned,
-}
+namespace Library.Domain.Copies.Entities;
 
 public class BookCopy
 {
@@ -40,9 +20,6 @@ public class BookCopy
         Status = CopyStatus.Available;
     }
 
-    /// <summary>
-    /// 取り置き状態にする（Hold 割当時）。
-    /// </summary>
     public void PlaceOnHold(PatronId patronId)
     {
         if (Status != CopyStatus.Available)
@@ -52,9 +29,6 @@ public class BookCopy
         HeldBy = patronId;
     }
 
-    /// <summary>
-    /// 貸出状態にする（Checkout 時）。
-    /// </summary>
     public void Checkout()
     {
         if (Status != CopyStatus.OnHold)

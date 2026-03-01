@@ -1,27 +1,8 @@
-using Library.Domain.Copies;
-using Library.Domain.Patrons;
+using Library.Domain.Books.ValueObjects;
+using Library.Domain.Copies.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Domain.Books;
-
-public record HoldId(Guid Value)
-{
-    public static HoldId NewId() => new(Guid.NewGuid());
-}
-
-public enum HoldStatus
-{
-    /// <summary>Copy 割当待ち</summary>
-    Waiting,
-
-    /// <summary>Copy 割当済み（取り置き中）</summary>
-    Assigned,
-
-    /// <summary>貸出完了</summary>
-    Fulfilled,
-
-    /// <summary>キャンセル済み</summary>
-    Cancelled,
-}
+namespace Library.Domain.Books.Entities;
 
 public class Hold
 {
@@ -41,9 +22,6 @@ public class Hold
         PlacedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Copy を割り当てる（OnHold 状態へ）。
-    /// </summary>
     internal void Assign(CopyId copyId)
     {
         if (Status != HoldStatus.Waiting)
@@ -53,9 +31,6 @@ public class Hold
         Status = HoldStatus.Assigned;
     }
 
-    /// <summary>
-    /// 貸出完了にする。
-    /// </summary>
     public void Fulfill()
     {
         if (Status != HoldStatus.Assigned)
@@ -64,9 +39,6 @@ public class Hold
         Status = HoldStatus.Fulfilled;
     }
 
-    /// <summary>
-    /// 予約をキャンセルする。
-    /// </summary>
     public void Cancel()
     {
         if (Status is HoldStatus.Fulfilled or HoldStatus.Cancelled)

@@ -1,7 +1,8 @@
 using Library.Domain.Checkouts;
-using Library.Domain.Patrons;
+using Library.Domain.Checkouts.Entities;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Tests.Fakes;
+namespace Library.Infrastructure.Repositories;
 
 public class InMemoryCheckoutRepository : ICheckoutRepository
 {

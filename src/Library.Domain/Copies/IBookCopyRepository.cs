@@ -1,3 +1,6 @@
+using Library.Domain.Copies.Entities;
+using Library.Domain.Copies.ValueObjects;
+
 namespace Library.Domain.Copies;
 
 public interface IBookCopyRepository

@@ -1,13 +1,10 @@
-using Library.Domain.Patrons;
+using Library.Domain.Checkouts.Entities;
+using Library.Domain.Patrons.ValueObjects;
 
 namespace Library.Domain.Checkouts;
 
 public interface ICheckoutRepository
 {
     Task Save(Checkout checkout);
-
-    /// <summary>
-    /// 指定 Patron の延滞数を返す。
-    /// </summary>
     Task<int> CountOverduesByPatron(PatronId patronId, DateTime asOf);
 }

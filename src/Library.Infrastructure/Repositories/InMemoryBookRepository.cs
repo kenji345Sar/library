@@ -1,7 +1,9 @@
 using Library.Domain.Books;
-using Library.Domain.Patrons;
+using Library.Domain.Books.Entities;
+using Library.Domain.Books.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Tests.Fakes;
+namespace Library.Infrastructure.Repositories;
 
 public class InMemoryBookRepository : IBookRepository
 {

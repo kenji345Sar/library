@@ -1,3 +1,6 @@
+using Library.Domain.Patrons.Entities;
+using Library.Domain.Patrons.ValueObjects;
+
 namespace Library.Domain.Patrons;
 
 public interface IPatronRepository

@@ -1,19 +1,18 @@
 using Library.Domain.Books;
+using Library.Domain.Books.Entities;
+using Library.Domain.Books.ValueObjects;
 using Library.Domain.Checkouts;
+using Library.Domain.Checkouts.Entities;
+using Library.Domain.Checkouts.ValueObjects;
 using Library.Domain.Copies;
-using Library.Domain.Patrons;
+using Library.Domain.Copies.Entities;
+using Library.Domain.Copies.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
 namespace Library.Application;
 
 /// <summary>
 /// ⑥ 貸出（Checkout）
-///
-/// 入力: CopyId, PatronId（来館した利用者）
-/// 処理:
-///   1. Copy が OnHold かつ本人のものか確認
-///   2. Hold を Fulfilled にする
-///   3. Copy を Loaned にする
-///   4. Checkout エンティティを作成する
 /// </summary>
 public class CheckoutBookUseCase
 {
@@ -31,26 +30,23 @@ public class CheckoutBookUseCase
         _checkoutRepository = checkoutRepository;
     }
 
-    public record Command(CopyId CopyId, PatronId PatronId);
-    public record Result(CheckoutId CheckoutId, DateTime DueDate);
-
-    public async Task<Result> Execute(Command command)
+    public async Task<(CheckoutId CheckoutId, DateTime DueDate)> Execute(CopyId copyId, PatronId patronId)
     {
         // 1. Copy を取得し、OnHold かつ本人か確認
-        var copy = await _bookCopyRepository.FindById(command.CopyId)
+        BookCopy copy = await _bookCopyRepository.FindById(copyId)
             ?? throw new InvalidOperationException("蔵書が見つかりません。");
 
         if (copy.Status != CopyStatus.OnHold)
             throw new InvalidOperationException("取り置き中の蔵書ではありません。");
 
-        if (copy.HeldBy != command.PatronId)
+        if (copy.HeldBy != patronId)
             throw new InvalidOperationException("この蔵書は別の利用者に取り置きされています。");
 
         // 2. Book から該当 Hold を見つけて Fulfilled にする
-        var book = await _bookRepository.FindById(copy.BookId)
+        Book book = await _bookRepository.FindById(copy.BookId)
             ?? throw new InvalidOperationException("書籍が見つかりません。");
 
-        var hold = book.Holds.FirstOrDefault(
+        Hold hold = book.Holds.FirstOrDefault(
             h => h.AssignedCopyId == copy.Id && h.Status == HoldStatus.Assigned)
             ?? throw new InvalidOperationException("該当する予約が見つかりません。");
 
@@ -60,9 +56,9 @@ public class CheckoutBookUseCase
         copy.Checkout();
 
         // 4. Checkout エンティティ作成（C6: 最大 60 日）
-        var checkout = new Checkout(
+        Checkout checkout = new Checkout(
             CheckoutId.NewId(),
-            command.PatronId,
+            patronId,
             copy.Id,
             DateTime.UtcNow);
 
@@ -71,6 +67,6 @@ public class CheckoutBookUseCase
         await _bookCopyRepository.Save(copy);
         await _checkoutRepository.Save(checkout);
 
-        return new Result(checkout.Id, checkout.DueDate);
+        return (checkout.Id, checkout.DueDate);
     }
 }

@@ -1,12 +1,8 @@
-using Library.Domain.Copies;
-using Library.Domain.Patrons;
+using Library.Domain.Copies.ValueObjects;
+using Library.Domain.Checkouts.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Domain.Checkouts;
-
-public record CheckoutId(Guid Value)
-{
-    public static CheckoutId NewId() => new(Guid.NewGuid());
-}
+namespace Library.Domain.Checkouts.Entities;
 
 public class Checkout
 {
@@ -27,8 +23,5 @@ public class Checkout
         DueDate = checkedOutAt.AddDays(MaxLoanDays);
     }
 
-    /// <summary>
-    /// 延滞しているかどうか。
-    /// </summary>
     public bool IsOverdue(DateTime now) => now > DueDate;
 }

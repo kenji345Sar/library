@@ -1,6 +1,8 @@
 using Library.Domain.Copies;
+using Library.Domain.Copies.Entities;
+using Library.Domain.Copies.ValueObjects;
 
-namespace Library.ConsoleApp.Fakes;
+namespace Library.Infrastructure.Repositories;
 
 public class InMemoryBookCopyRepository : IBookCopyRepository
 {

@@ -1,6 +1,8 @@
 using Library.Domain.Patrons;
+using Library.Domain.Patrons.Entities;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Tests.Fakes;
+namespace Library.Infrastructure.Repositories;
 
 public class InMemoryPatronRepository : IPatronRepository
 {

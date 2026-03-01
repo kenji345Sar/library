@@ -85,7 +85,40 @@ copy.PlaceOnHold(hold.PatronId);     // BookCopy 集約の状態を変える
 | PatronId | Patrons/Patron.cs | `record PatronId(Guid Value)` |
 | CheckoutId | Checkouts/Checkout.cs | `record CheckoutId(Guid Value)` |
 
-C# の record は構造的等価性を持つため、Value Object に適している。
+### record とは
+
+C# の `record` は、**データを入れるための型**を1行で定義できる仕組み。
+
+```csharp
+// record で書く（1行）
+public record BookId(Guid Value);
+
+// class で同じことを書くと長い
+public class BookId
+{
+    public Guid Value { get; }
+    public BookId(Guid value) { Value = value; }
+    // Equals, GetHashCode, ToString も自分で書く必要がある
+}
+```
+
+record が自動で提供するもの:
+
+| 機能 | 説明 |
+|------|------|
+| コンストラクタ + プロパティ | `(Guid Value)` だけで両方作られる |
+| イミュータブル | 作成後に値を変更できない |
+| 構造的等価性 | 中身が同じなら `==` で `true` になる |
+
+```csharp
+var a = new BookId(Guid.Parse("..."));
+var b = new BookId(Guid.Parse("..."));
+
+// class → a == b は false（別のオブジェクトだから）
+// record → a == b は true（中身が同じだから）
+```
+
+Value Object は「値が同じなら同じ」なので、record が適している。
 
 ### enum 系
 

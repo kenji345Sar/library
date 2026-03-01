@@ -1,18 +1,18 @@
 using Library.Domain.Books;
+using Library.Domain.Books.Entities;
+using Library.Domain.Books.ValueObjects;
 using Library.Domain.Copies;
+using Library.Domain.Copies.Entities;
+using Library.Domain.Copies.ValueObjects;
 using Library.Domain.Patrons;
+using Library.Domain.Patrons.Entities;
+using Library.Domain.Patrons.ValueObjects;
+using Library.Domain.Services;
 
 namespace Library.Application;
 
 /// <summary>
 /// ④ Copy を割り当てる
-///
-/// トリガー: Copy が Available になった（返却 or 新規登録）
-/// 処理:
-///   1. その Copy の Book を確認
-///   2. 予約キューの先頭を取得
-///   3. Restricted なら Researcher か確認
-///   4. Hold に Copy を紐づけ、Copy を OnHold へ
 /// </summary>
 public class AssignCopyUseCase
 {
@@ -30,40 +30,34 @@ public class AssignCopyUseCase
         _patronRepository = patronRepository;
     }
 
-    public record Command(CopyId CopyId);
-    public record Result(HoldId HoldId, PatronId PatronId);
-
-    /// <summary>
-    /// 割当を試みる。待ちキューが空なら null を返す。
-    /// </summary>
-    public async Task<Result?> Execute(Command command)
+    public async Task<(HoldId HoldId, PatronId PatronId)?> Execute(CopyId copyId)
     {
         // 1. Copy を取得
-        var copy = await _bookCopyRepository.FindById(command.CopyId)
+        BookCopy copy = await _bookCopyRepository.FindById(copyId)
             ?? throw new InvalidOperationException("蔵書が見つかりません。");
 
         if (copy.Status != CopyStatus.Available)
             throw new InvalidOperationException("利用可能な蔵書ではありません。");
 
         // 2. Book を取得し、待ちキューの先頭を確認
-        var book = await _bookRepository.FindById(copy.BookId)
+        Book book = await _bookRepository.FindById(copy.BookId)
             ?? throw new InvalidOperationException("書籍が見つかりません。");
 
-        var hold = book.NextWaitingHold();
+        Hold? hold = book.NextWaitingHold();
         if (hold is null)
-            return null; // 待ちなし
+            return null;
 
         // 3. Restricted チェック（C3: Researcher のみ）
+        //    Copy と Patron の2つの集約にまたがるルールなので Domain Service に聞く
         if (copy.Type == CopyType.Restricted)
         {
-            var patron = await _patronRepository.FindById(hold.PatronId)
+            Patron patron = await _patronRepository.FindById(hold.PatronId)
                 ?? throw new InvalidOperationException("利用者が見つかりません。");
 
-            if (!patron.CanHoldRestricted())
-                throw new InvalidOperationException("Restricted 本は Researcher のみ予約できます。");
+            RestrictedBookPolicy.EnsureCanAssign(copy, patron);
         }
 
-        // 4. 割当: Hold に Copy を紐づけ、Copy を OnHold へ
+        // 4. 割当
         book.AssignCopy(hold.Id, copy.Id);
         copy.PlaceOnHold(hold.PatronId);
 
@@ -71,6 +65,6 @@ public class AssignCopyUseCase
         await _bookRepository.Save(book);
         await _bookCopyRepository.Save(copy);
 
-        return new Result(hold.Id, hold.PatronId);
+        return (hold.Id, hold.PatronId);
     }
 }

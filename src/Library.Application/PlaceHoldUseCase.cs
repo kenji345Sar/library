@@ -1,18 +1,15 @@
 using Library.Domain.Books;
+using Library.Domain.Books.Entities;
+using Library.Domain.Books.ValueObjects;
 using Library.Domain.Checkouts;
 using Library.Domain.Patrons;
+using Library.Domain.Patrons.Entities;
+using Library.Domain.Patrons.ValueObjects;
 
 namespace Library.Application;
 
 /// <summary>
 /// ① 予約する（Hold 作成）
-///
-/// 入力: PatronId, BookId
-/// 処理:
-///   1. 利用者は存在するか
-///   2. Regular なら現在予約数 &lt; 5 か
-///   3. 延滞制限に引っかかっていないか
-///   4. Book に Hold を追加（キューの最後）
 /// </summary>
 public class PlaceHoldUseCase
 {
@@ -30,36 +27,33 @@ public class PlaceHoldUseCase
         _checkoutRepository = checkoutRepository;
     }
 
-    public record Command(PatronId PatronId, BookId BookId);
-    public record Result(HoldId HoldId);
-
-    public async Task<Result> Execute(Command command)
+    public async Task<HoldId> Execute(PatronId patronId, BookId bookId)
     {
         // 1. 利用者を取得
-        var patron = await _patronRepository.FindById(command.PatronId)
+        Patron patron = await _patronRepository.FindById(patronId)
             ?? throw new InvalidOperationException("利用者が見つかりません。");
 
         // 2. 有効予約数を取得
-        var activeHoldCount = await _bookRepository.CountActiveHoldsByPatron(command.PatronId);
+        int activeHoldCount = await _bookRepository.CountActiveHoldsByPatron(patronId);
 
         // 3. 延滞数を取得
-        var overdueCount = await _checkoutRepository.CountOverduesByPatron(
-            command.PatronId, DateTime.UtcNow);
+        int overdueCount = await _checkoutRepository.CountOverduesByPatron(
+            patronId, DateTime.UtcNow);
 
         // 4. 予約可能か判定（C2: 予約上限, C5: 延滞制限）
         if (!patron.CanPlaceHold(activeHoldCount, overdueCount))
             throw new InvalidOperationException("予約制限により予約できません。");
 
         // 5. Book を取得
-        var book = await _bookRepository.FindById(command.BookId)
+        Book book = await _bookRepository.FindById(bookId)
             ?? throw new InvalidOperationException("書籍が見つかりません。");
 
         // 6. 予約キューに追加（この時点では Copy 未割当）
-        var hold = book.PlaceHold(command.PatronId);
+        Hold hold = book.PlaceHold(patronId);
 
         // 7. 保存
         await _bookRepository.Save(book);
 
-        return new Result(hold.Id);
+        return hold.Id;
     }
 }

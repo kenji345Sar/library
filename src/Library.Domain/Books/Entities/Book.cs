@@ -1,24 +1,8 @@
-using Library.Domain.Copies;
-using Library.Domain.Patrons;
+using Library.Domain.Books.ValueObjects;
+using Library.Domain.Copies.ValueObjects;
+using Library.Domain.Patrons.ValueObjects;
 
-namespace Library.Domain.Books;
-
-public record BookId(Guid Value)
-{
-    public static BookId NewId() => new(Guid.NewGuid());
-}
-
-public record ISBN
-{
-    public string Value { get; }
-
-    public ISBN(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("ISBN は空にできません。", nameof(value));
-        Value = value;
-    }
-}
+namespace Library.Domain.Books.Entities;
 
 public class Book
 {
@@ -42,10 +26,6 @@ public class Book
             : throw new ArgumentException("価格は正の値である必要があります。", nameof(price));
     }
 
-    /// <summary>
-    /// 予約キューに追加する。
-    /// この時点では Copy は未割当。
-    /// </summary>
     public Hold PlaceHold(PatronId patronId)
     {
         var hold = new Hold(HoldId.NewId(), patronId, Id);
@@ -53,9 +33,6 @@ public class Book
         return hold;
     }
 
-    /// <summary>
-    /// 待ちキューの先頭を返す。なければ null。
-    /// </summary>
     public Hold? NextWaitingHold()
     {
         return _holds
@@ -64,9 +41,6 @@ public class Book
             .FirstOrDefault();
     }
 
-    /// <summary>
-    /// 待ちキュー内の指定 Hold に Copy を割り当てる。
-    /// </summary>
     public void AssignCopy(HoldId holdId, CopyId copyId)
     {
         var hold = _holds.FirstOrDefault(h => h.Id == holdId && h.Status == HoldStatus.Waiting)
